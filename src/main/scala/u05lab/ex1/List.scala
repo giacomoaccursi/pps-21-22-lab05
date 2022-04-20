@@ -1,6 +1,7 @@
 package u05lab.ex1
 
-import u05lab.ex1.List
+
+import scala.::
 
 // Ex 1. implement the missing methods both with recursion or with using fold, map, flatMap, and filters
 // List as a pure interface
@@ -17,9 +18,8 @@ enum List[A]:
     case h :: t => Some(t)
     case _ => None
 
-  def append(list: List[A]): List[A] = this match
-    case h :: t => h :: t.append(list)
-    case _ => list
+  def append(list: List[A]): List[A] =
+    foldRight(list)(_ :: _)
 
   def foreach(consumer: A => Unit): Unit = this match
     case h :: t => consumer(h); t.foreach(consumer)
@@ -59,16 +59,26 @@ enum List[A]:
   def reverse(): List[A] = foldLeft[List[A]](Nil())((l, e) => e :: l)
 
   /** EXERCISES */
-  def zipRight: List[(A, Int)] = ???
+  def zipRightWithRecursion: List[(A, Int)] =
+    def _zipRight[B](l: List[A], init: B)(f: B => B): List[(A, B)] = l match
+      case h :: t => (h, init) :: _zipRight(t, f(init))(f)
+      case _ => Nil()
+    _zipRight(this, 0)(_ + 1)
 
-  def partition(pred: A => Boolean): (List[A], List[A]) = ???
+  def partition(pred: A => Boolean): (List[A], List[A]) =
+    foldRight(Nil(), Nil())((a, tuple) => if pred(a) then (a :: tuple._1, tuple._2) else (tuple._1, a :: tuple._2))
 
   def span(pred: A => Boolean): (List[A], List[A]) = ???
 
   /** @throws UnsupportedOperationException if the list is empty */
-  def reduce(op: (A, A) => A): A = ???
+  def reduce(op: (A, A) => A): A = this match
+    case h ::t => t.foldLeft(h)(op)
+    case _ => throw UnsupportedOperationException()
 
   def takeRight(n: Int): List[A] = ???
+
+  def collect[B](f: PartialFunction[A, B]): List[B] =
+    filter(f.isDefinedAt(_)).map(f)
 
 // Factories
 object List:
@@ -83,7 +93,7 @@ object List:
 
 @main def checkBehaviour(): Unit =
   val reference = List(1, 2, 3, 4)
-  println(reference.zipRight) // List((1, 0), (2, 1), (3, 2), (4, 3))
+  //println(reference.zipRight) // List((1, 0), (2, 1), (3, 2), (4, 3))
   println(reference.partition(_ % 2 == 0)) // (List(2, 4), List(1, 3))
   println(reference.span(_ % 2 != 0)) // (List(1), List(2, 3, 4))
   println(reference.span(_ < 3)) // (List(1, 2), List(3, 4))
